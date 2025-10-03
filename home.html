@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="fi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>liputvip.win</title>
+  <meta name="description" content="Tervetuloa liputvip.win sivulle.">
+  <link rel="icon" href="/favicon.ico">
+  <style>
+    :root{
+      --bg1:#0b1220; --bg2:#111827; --fg:#e5e7eb; --muted:#94a3b8;
+      --ring:rgba(59,130,246,.45);
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{
+      font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; color:var(--fg);
+      display:grid; place-items:center; padding:24px; position:relative; overflow:hidden;
+      background: linear-gradient(270deg, var(--bg1), var(--bg2), var(--bg1));
+      background-size: 600% 600%;
+      animation: gradientMove 20s ease infinite;
+    }
+    @keyframes gradientMove { 
+      0%{background-position:0% 50%} 
+      50%{background-position:100% 50%} 
+      100%{background-position:0% 50%} 
+    }
+
+    /* Partikkelit canvas */
+    #particles {
+      position:absolute;
+      top:0;left:0;width:100%;height:100%;
+      z-index:0;
+    }
+
+    .wrap{max-width:840px; width:100%; position:relative; z-index:1}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.02));
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:20px; padding:36px 28px; backdrop-filter: blur(10px);
+      box-shadow: 0 20px 60px rgba(0,0,0,.35);
+      opacity:0; transform:translateY(20px); animation:fadeInUp .8s ease forwards;
+      text-align:center;
+    }
+    @keyframes fadeInUp { to{opacity:1; transform:translateY(0)} }
+    h1{
+      margin:0 0 8px; font-size:clamp(28px, 5vw, 44px); line-height:1.1;
+      letter-spacing:.2px; background:linear-gradient(90deg,var(--fg),#cbd5e1); -webkit-background-clip:text; background-clip:text; color:transparent;
+    }
+    .row{display:flex; gap:14px; flex-wrap:wrap; justify-content:center; margin-top:16px}
+    .btn{
+      appearance:none; border:1px solid rgba(255,255,255,.12); background:#0b1220; color:var(--fg);
+      text-decoration:none; padding:14px 18px; border-radius:12px; font-weight:600; display:inline-flex; align-items:center; gap:10px;
+      transition: all .25s ease; box-shadow: 0 8px 24px rgba(0,0,0,.25);
+      position:relative; overflow:hidden;
+    }
+    .btn:hover{ transform:translateY(-3px) scale(1.03); border-color:var(--ring); box-shadow:0 0 18px rgba(59,130,246,.7) }
+    .btn-primary{ background:linear-gradient(90deg, #3b82f6, #22d3ee); border-color:transparent }
+    .btn svg{ width:20px; height:20px; flex:0 0 20px; display:block }
+    .btn::after{ content:""; position:absolute; background:rgba(255,255,255,.3); border-radius:50%;
+      width:100px; height:100px; transform:scale(0); opacity:0; pointer-events:none; }
+    .btn:active::after{ left:50%; top:50%; transform:translate(-50%,-50%) scale(2); opacity:1; transition:transform .5s, opacity 1s; }
+    .badge{display:inline-flex; align-items:center; gap:10px; padding:8px 12px; border-radius:999px;
+      border:1px solid rgba(255,255,255,.12); background:rgba(255,255,255,.03); color:#cbd5e1; font-size:13px; margin-bottom:14px}
+    .dot{width:8px; height:8px; border-radius:999px; background:#22c55e; box-shadow:0 0 0 6px rgba(34,197,94,.15)}
+    .footer{margin-top:22px; font-size:12px; color:#94a3b8}
+    #tomorrow-preview{
+      display:inline-block;
+      width:22px; height:22px;
+      border-radius:6px;
+      border:1px solid rgba(255,255,255,.2);
+      transition:background .5s ease;
+    }
+  </style>
+</head>
+<body>
+  <!-- Partikkelitausta -->
+  <canvas id="particles"></canvas>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="badge"><span class="dot"></span> Online</div>
+      <h1>Liputvip.win</h1>
+
+      <div class="row">
+        <a class="btn btn-primary" href="/index.html" aria-label="Lippuun">🎟️ Lippuun</a>
+        <a class="btn" href="https://t.me/lipppu" target="_blank" rel="noopener">📢 Telegram</a>
+        <a class="btn" href="https://discord.gg/gRHqrbkEeT" target="_blank" rel="noopener">💬 Discord</a>
+        <a id="tomorrow-btn" class="btn" href="#">🌅 Huomisen väri <span id="tomorrow-preview"></span></a>
+      </div>
+
+      <div class="footer">© <span id="y"></span> liputvip.win</div>
+    </div>
+  </div>
+
+<script>document.getElementById('y').textContent = new Date().getFullYear()</script>
+
+<script>
+let particleColor = "rgba(255,255,255,0.5)"; // default
+
+document.addEventListener("DOMContentLoaded", () => {
+  fetch("https://liputvip.win/api/colors", { cache: "no-store" })
+    .then(res => res.json())
+    .then(data => {
+      const todayColor = data.today_color || "#3b82f6";
+      const tomorrowColor = data.tomorrow_color || "#22d3ee";
+
+      // tämän päivän väri -> Lippuun-nappi
+      document.querySelectorAll(".btn-primary").forEach(btn => {
+        btn.style.transition = "background .5s ease, border-color .5s ease";
+        btn.style.background = todayColor;
+        btn.style.borderColor = todayColor;
+      });
+
+      // huomisen väri -> vain preview-laatikkoon
+      const preview = document.getElementById("tomorrow-preview");
+      if (preview) {
+        preview.style.background = tomorrowColor;
+      }
+
+      // partikkelien väri päivän väriin
+      particleColor = todayColor;
+    })
+    .catch(err => console.error("Värin haku epäonnistui:", err));
+});
+</script>
+
+<script>
+// Kevyt partikkelitausta
+const canvas = document.getElementById("particles");
+const ctx = canvas.getContext("2d");
+let particles = [];
+const num = 60;
+
+function resize() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+window.addEventListener("resize", resize);
+resize();
+
+for (let i=0; i<num; i++) {
+  particles.push({
+    x: Math.random()*canvas.width,
+    y: Math.random()*canvas.height,
+    r: Math.random()*2+1,
+    dx: (Math.random()-0.5)*0.6,
+    dy: (Math.random()-0.5)*0.6
+  });
+}
+
+function draw() {
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle = particleColor;
+  particles.forEach(p => {
+    ctx.beginPath();
+    ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+    ctx.fill();
+  });
+  connect();
+  update();
+  requestAnimationFrame(draw);
+}
+
+function update() {
+  particles.forEach(p => {
+    p.x += p.dx; p.y += p.dy;
+    if(p.x<0||p.x>canvas.width) p.dx*=-1;
+    if(p.y<0||p.y>canvas.height) p.dy*=-1;
+  });
+}
+
+function connect() {
+  for(let i=0;i<num;i++){
+    for(let j=i;j<num;j++){
+      const dx = particles[i].x - particles[j].x;
+      const dy = particles[i].y - particles[j].y;
+      const dist = Math.sqrt(dx*dx+dy*dy);
+      if(dist<120){
+        ctx.strokeStyle = particleColor.replace(")", ",0.2)").replace("rgb","rgba");
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(particles[i].x,particles[i].y);
+        ctx.lineTo(particles[j].x,particles[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+}
+
+draw();
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js?v=11');
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!sessionStorage.getItem('reloadedOnce')) {
+      sessionStorage.setItem('reloadedOnce', '1');
+      location.reload();
+    }
+  });
+}
+</script>
+
+<script>
+async function paivitaVari() {
+  try {
+    const res = await fetch('/api/colors?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error("API error: " + res.status);
+    const data = await res.json();
+
+    // haetaan väri
+    const vari = data.today_color || "#000000";
+
+    // laitetaan taustaväriksi
+    document.body.style.backgroundColor = vari;
+
+    // jos sulla on joku elementti lipulle
+    const lippu = document.getElementById("lippu");
+    if (lippu) {
+      lippu.style.backgroundColor = vari;
+    }
+
+    console.log("[Lippu] Väri päivitetty:", vari);
+  } catch (e) {
+    console.error("[Lippu] Väriä ei voitu päivittää:", e);
+  }
+}
+
+// Päivitä heti sivun latauksessa
+paivitaVari();
+
+// Päivitä automaattisesti 30s välein
+setInterval(paivitaVari, 30000);
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js?v=17')
+      .then(registration => {
+        console.log('Service Worker rekisteröity:', registration.scope);
+      })
+      .catch(error => {
+        console.error('Service Worker rekisteröinti epäonnistui:', error);
+      });
+  });
+}
+</script>
+
+
+</body>
+</html>
